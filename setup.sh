@@ -2,7 +2,7 @@
 
 set -x
 
-DOT_FILES_DIR = $PWD
+DOT_FILES_DIR=$PWD
 
 sudo apt update
 sudo apt install -y \
