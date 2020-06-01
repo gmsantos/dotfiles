@@ -12,6 +12,7 @@ sudo apt install -y \
   php-cli
 
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+sudo usermod --shell /bin/zsh $USER
 
 cd $HOME/.oh-my-zsh/custom/plugins
 
