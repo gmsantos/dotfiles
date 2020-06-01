@@ -24,4 +24,4 @@ git submodule update --init
 
 cd $DOT_FILES_DIR
 
-find -type f -not -iwholename '*.git/*' -not -iname 'setup.sh' -exec cp -t $HOME '{}' ';'
+rsync --exclude ".git/" --exclude "setup.sh" -av . ~
