@@ -13,7 +13,7 @@ sudo apt install -y \
 
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 
-cd ${ZSH_CUSTOM:-$ZSH/custom}/plugins
+cd $HOME/.oh-my-zsh/custom/plugins
 
 git submodule add https://github.com/djui/alias-tips
 git submodule add https://github.com/zsh-users/zsh-autosuggestions
