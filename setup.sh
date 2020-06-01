@@ -21,4 +21,4 @@ git submodule update --init
 
 cd $DOT_FILES_DIR
 
-find -type f -name .bash_aliases -exec cp '{}' "$HOME/{}" ';'
+find -type f -not -iwholename '*.git/*' -not -iname 'setup.sh' -exec cp -t $HOME '{}' ';'
