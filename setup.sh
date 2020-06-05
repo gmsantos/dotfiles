@@ -25,4 +25,4 @@ git submodule update --init
 
 cd $DOT_FILES_DIR
 
-rsync --exclude ".git/" --exclude "setup.sh" -av . ~
+rsync --exclude ".git/" --exclude "setup.sh" -av . $HOME
