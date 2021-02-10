@@ -3,6 +3,7 @@
 	name = gmsantos
 [core]
 	editor = vim
+[pull]
+	rebase = true
 [init]
 	defaultBranch = main
-
