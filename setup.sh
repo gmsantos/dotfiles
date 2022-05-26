@@ -19,8 +19,8 @@ sudo usermod --shell /bin/zsh $USER
 
 cd $HOME/.oh-my-zsh/custom/plugins
 
-git submodule add https://github.com/djui/alias-tips
-git submodule add https://github.com/zsh-users/zsh-autosuggestions
+git submodule add -f https://github.com/djui/alias-tips
+git submodule add -f https://github.com/zsh-users/zsh-autosuggestions
 git submodule update --init
 
 cd $DOT_FILES_DIR
