@@ -1,9 +1,12 @@
 [user]
 	email = gabriel.ms1@hotmail.com
 	name = gmsantos
+	signingkey = xxxxx
 [core]
 	editor = vim
 [pull]
 	rebase = true
 [init]
 	defaultBranch = main
+[commit]
+	gpgsign = true

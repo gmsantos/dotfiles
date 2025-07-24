@@ -2,7 +2,7 @@
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Path to your oh-my-zsh installation.
-export ZSH="/home/gmsantos/.oh-my-zsh"
+export ZSH="~/.oh-my-zsh"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -68,7 +68,14 @@ ZSH_THEME="robbyrussell"
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git zsh-autosuggestions kubectl alias-tips)
+plugins=(
+  git
+  zsh-autosuggestions
+  kubectl
+  alias-tips
+  kube-ps1
+  virtualenv
+)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -102,5 +109,5 @@ if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
 fi
 
-export PATH=$HOME/.dotnet/tools:$HOME/.local/bin:$PATH
+export PATH=$HOME/.local/bin:$PATH
 
