@@ -1,10 +1,17 @@
 # This configuration improve autocomplete contrast in light themes.
-# Define an envvar named ZSH_AUTOSUGGEST_LIGHT with "fg=250" as the value.
 #
-# I use this especially in vscode, becasue I like light themes :)
-#
-# "terminal.integrated.env.linux": {
-#     "ZSH_AUTOSUGGEST_LIGHT": "fg=250"
-# }
+# In WSL, it detects the current windows theme from the registry
+# and define ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE to a different color
+# when the OS theme is light
 
-ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="${ZSH_AUTOSUGGEST_LIGHT:-fg=8}"
+if [[ -r /proc/version ]] && grep -q "microsoft" /proc/version; then
+  # 1. Query Windows Registry via PowerShell
+  # 2. Use 'tr' to remove the trailing Carriage Return (\r) Windows adds
+  local win_theme_val
+  win_theme_val=$(powershell.exe -Command '(Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize").AppsUseLightTheme' 2>/dev/null | tr -d '\r')
+
+  # Check value (0 = Dark, 1 = Light)
+  if [[ "$win_theme_val" == "1" ]]; then
+    export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=250"
+  fi
+fi
