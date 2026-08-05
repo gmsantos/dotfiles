@@ -1,0 +1,9 @@
+#!/bin/sh
+# $BROWSER hook for WSL.
+#
+# xdg-open hands URLs to rundll32.exe, and WSL's interop shim writes
+# "tcgetpgrp failed: Not a tty" to stderr whenever the caller launched it in a
+# new session (python's webbrowser module does this, so `aws sso login`,
+# `gh auth login`, etc. print it over the authorization prompt).
+# The message is noise, so drop the child's output.
+exec xdg-open "$@" >/dev/null 2>&1
