@@ -1,7 +1,7 @@
 [user]
 	email = gabriel.ms1@hotmail.com
 	name = gmsantos
-	signingkey = 7A995055AB35EF78
+	signingkey = XXXXXXXXXXXXXXXX
 [core]
 	editor = vim
 [pull]
