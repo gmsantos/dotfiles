@@ -1,3 +1,8 @@
 # Zsh byte-compiles modules next to their source on first load.
 *.zwc
 *.zwc.old
+
+# Scratch git worktrees. Each holds a .git file, which `git add -A` records as
+# a gitlink rather than ignoring, leaving a dangling submodule entry behind
+# once the worktree is removed.
+.claude/worktrees/
