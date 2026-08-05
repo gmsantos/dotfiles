@@ -1,0 +1,41 @@
+#
+# Ages the cached theme out and re-applies it when the cached value has changed
+# since it was last read, so that a background refresh takes effect without
+# restarting the shell.
+#
+# Usage: wsl-theme-precmd
+#
+# Costs one stat(2) per prompt and nothing else. The registry query itself is
+# spawned in the background, at most once per ${_wsl_theme_ttl} seconds.
+#
+
+emulate -L zsh
+
+zmodload -F zsh/stat b:zstat 2>/dev/null || return 0
+
+local -i now=${EPOCHSECONDS:-0}
+local -a st
+
+if ! zstat -A st +mtime ${_wsl_theme_cache} 2>/dev/null; then
+  # The cache went away underneath us; rebuild it rather than going stale
+  # forever. Still in the background, so the prompt never blocks.
+  if (( now && _wsl_theme_ttl && now - _wsl_theme_refreshed >= _wsl_theme_ttl )); then
+    _wsl_theme_refreshed=${now}
+    wsl-theme-refresh ${_wsl_theme_cache} &!
+  fi
+  return 0
+fi
+
+# Re-query once the cached value has aged past the TTL. The second condition
+# keeps a slow or failing reg.exe from being spawned again on every prompt.
+if (( now && _wsl_theme_ttl &&
+      now - st[1] >= _wsl_theme_ttl &&
+      now - _wsl_theme_refreshed >= _wsl_theme_ttl )); then
+  _wsl_theme_refreshed=${now}
+  wsl-theme-refresh ${_wsl_theme_cache} &!
+fi
+
+(( st[1] == _wsl_theme_mtime )) && return 0
+
+_wsl_theme_mtime=${st[1]}
+wsl-theme-apply

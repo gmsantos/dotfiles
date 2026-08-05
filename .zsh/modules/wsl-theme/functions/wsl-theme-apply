@@ -1,0 +1,37 @@
+#
+# Applies the cached Windows apps theme to the current shell.
+#
+# Usage: wsl-theme-apply
+#
+# Sets ${WSL_APPS_THEME}, restyles zsh-autosuggestions, and runs every function
+# named in ${wsl_theme_functions} with the theme as its only argument. Falls
+# back to `dark` when nothing has been detected yet, which is what the
+# autosuggestion default already assumes.
+#
+# Safe to call repeatedly: every run assigns a style, so repainting is
+# symmetric in both directions.
+#
+
+emulate -L zsh
+
+local theme style
+[[ -s ${_wsl_theme_cache} ]] && theme=$(<${_wsl_theme_cache})
+[[ ${theme} == (light|dark) ]] || theme=dark
+typeset -g WSL_APPS_THEME=${theme}
+
+if [[ ${theme} == light ]]; then
+  zstyle -s ':zim:wsl-theme' light-style style || style='fg=250'
+else
+  # Matches zsh-autosuggestions' own default. Set unconditionally rather than
+  # left empty, so that switching back from light actually restores it.
+  zstyle -s ':zim:wsl-theme' dark-style style || style='fg=8'
+fi
+
+typeset -g ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE=${style}
+
+local fn
+for fn in ${wsl_theme_functions}; do
+  (( ${+functions[${fn}]} )) && ${fn} ${theme}
+done
+
+return 0

@@ -1,0 +1,34 @@
+#
+# Detects the current Windows apps theme and caches the result.
+#
+# Usage: wsl-theme-refresh <cache_file>
+#
+# Writes 'light' or 'dark' to <cache_file>. Prints nothing and touches no
+# global state, so it is safe to run detached with &!.
+#
+
+emulate -L zsh
+
+local cache=${1}
+[[ -n ${cache} ]] || return 1
+
+# reg.exe starts about 6x faster than powershell.exe (0.19s vs 1.06s measured
+# here), which matters because this runs inline on a cold cache.
+local out
+out=$(reg.exe query 'HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize' \
+    /v AppsUseLightTheme 2>/dev/null) || return 1
+
+# Windows terminates its lines with CR. The value line looks like:
+#     AppsUseLightTheme    REG_DWORD    0x1
+local line=${${(M)${(f)${out//$'\r'/}}:#*AppsUseLightTheme*}[1]}
+[[ -n ${line} ]] || return 1
+
+local value=${${line##*0x}%%[^0-9a-fA-F]*}
+[[ -n ${value} ]] || return 1
+
+mkdir -p ${cache:h} || return 1
+if (( 16#${value} )); then
+  print -r -- light >| ${cache}
+else
+  print -r -- dark >| ${cache}
+fi
