@@ -1,0 +1,3 @@
+# Zsh byte-compiles modules next to their source on first load.
+*.zwc
+*.zwc.old
