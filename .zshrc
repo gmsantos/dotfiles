@@ -140,8 +140,10 @@ unset _brew
 # tty" noise (see ~/.local/bin/xdg-browser).
 export BROWSER="$HOME/.local/bin/xdg-browser"
 
-# Add extra paths to PATH
-export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
+# Add extra paths to PATH. `path` is the array tied to it; -U keeps it free of
+# duplicates, so re-sourcing this file does not grow PATH each time.
+typeset -gU path PATH
+path=($HOME/bin $HOME/.local/bin /usr/local/bin $path)
 
 # Sensitive exports live in ~/.zsh_secrets (mode 600, never committed).
 if [[ -f ~/.zsh_secrets ]]; then
