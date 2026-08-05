@@ -124,8 +124,17 @@ fi
 source ${ZIM_HOME}/init.zsh
 # }}} End configuration added by Zim Framework install
 
-# Load homebrew env to shell
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+# Load homebrew env to shell, on the machines that have it. Its own installer
+# prints this line with the prefix baked in, but the prefix differs per
+# platform and a missing brew makes every shell start with a "no such file or
+# directory" error, so look for it instead.
+for _brew in /home/linuxbrew/.linuxbrew/bin/brew /opt/homebrew/bin/brew /usr/local/bin/brew; do
+  if [[ -x ${_brew} ]]; then
+    eval "$(${_brew} shellenv)"
+    break
+  fi
+done
+unset _brew
 
 # Open URLs through xdg-open, silencing WSL interop's "tcgetpgrp failed: Not a
 # tty" noise (see ~/.local/bin/xdg-browser).
