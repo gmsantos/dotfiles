@@ -61,6 +61,36 @@ function git_current_branch {
 function current_branch { git_current_branch }
 
 #
+# completion
+#
+
+# Docker Desktop's WSL integration symlinks /usr/share/zsh/vendor-completions/_docker
+# into /mnt/wsl/docker-desktop, which is unmounted whenever Docker Desktop isn't
+# running. Zim's completion module zstats every file in fpath and gives up on the
+# first one that's missing, so compinit never runs, compdef is never defined, and
+# every plugin that calls it (oh-my-zsh git, kubectl, kubeswitch) errors out at
+# startup. Replace any directory holding a dangling link -- they're root-owned, so
+# the link itself can't be removed -- with a mirror of its remaining entries.
+() {
+  emulate -L zsh -o EXTENDED_GLOB
+  local zdir zmirror
+  local -a zbroken zgood zfpath
+  for zdir in ${fpath}; do
+    zbroken=(${zdir}/*(N-@))
+    if (( ! ${#zbroken} )); then
+      zfpath+=(${zdir})
+      continue
+    fi
+    zmirror=${ZSH_CACHE_DIR}/fpath/${zdir//\//%}
+    zgood=(${zdir}/*(N^-@))
+    command rm -rf ${zmirror} && command mkdir -p ${zmirror} &&
+        { (( ! ${#zgood} )) || command ln -s ${zgood} ${zmirror}/ } || continue
+    zfpath+=(${zmirror})
+  done
+  fpath=(${zfpath})
+}
+
+#
 # input
 #
 
@@ -148,5 +178,13 @@ path=($HOME/bin $HOME/.local/bin /usr/local/bin $path)
 # Sensitive exports live in ~/.zsh_secrets (mode 600, never committed).
 if [[ -f ~/.zsh_secrets ]]; then
   source ~/.zsh_secrets
+fi
+
+# Ubuntu 26.04 ships uutils ls 0.8.0, which drops the name sort entirely when
+# given --group-directories-first (LP #2154042). Zim's utility module sets that
+# flag, so override its alias with GNU ls from the gnu-coreutils package. Drop
+# this once /usr/bin/ls --version reports uutils >= 0.9.0.
+if (( $+commands[gnuls] )); then
+  alias ls='gnuls --group-directories-first --color=auto'
 fi
 
