@@ -1,3 +1,32 @@
+# PATH has to be complete before Zim initializes. Zim's completion module runs
+# compinit, which only scans the fpath it sees at that moment, and its utility
+# module probes `$+commands[...]`, which makes zsh hash every directory in PATH.
+# Setting PATH afterwards meant brew's site-functions were never scanned (brew
+# completions only worked by accident, via the FPATH that `brew shellenv`
+# exports and child shells inherit) and forced a second hash rebuild over the
+# ~5500 files the /mnt/c entries hold. Keep all of this above the Zim block.
+
+# `path`/`fpath` are the arrays tied to PATH/FPATH; -U keeps them free of
+# duplicates, so re-sourcing this file does not grow them each time. FPATH is
+# included because `brew shellenv` exports it: without -U a nested shell
+# inherits a full fpath and re-adds every Zim module directory on top of it.
+typeset -gU path PATH fpath FPATH
+
+# Load homebrew env to shell, on the machines that have it. Its own installer
+# prints this line with the prefix baked in, but the prefix differs per
+# platform and a missing brew makes every shell start with a "no such file or
+# directory" error, so look for it instead.
+for _brew in /home/linuxbrew/.linuxbrew/bin/brew /opt/homebrew/bin/brew /usr/local/bin/brew; do
+  if [[ -x ${_brew} ]]; then
+    eval "$(${_brew} shellenv)"
+    break
+  fi
+done
+unset _brew
+
+# Add extra paths to PATH.
+path=($HOME/bin $HOME/.local/bin /usr/local/bin $path)
+
 # Start configuration added by Zim Framework install {{{
 #
 # User configuration sourced by interactive shells
@@ -42,11 +71,61 @@ WORDCHARS=${WORDCHARS//[\/]}
 # oh-my-zsh plugin compatibility
 #
 
-# The oh-my-zsh kubectl plugin caches its generated completion here. This has to
-# be on fpath before the completion module runs compinit.
+# The oh-my-zsh kubectl plugin writes its generated completion here. The
+# directory is deliberately NOT on fpath: the plugin rewrites _kubectl on every
+# single startup, and Zim's completion module fingerprints the mtime of every
+# file in fpath to decide whether ~/.zcompdump is still valid. With it on fpath
+# each shell invalidated the next one's dump, so compinit rebuilt from scratch
+# every time (~590ms of a ~950ms startup). kubectl completion is served from
+# ${ZSH_COMPLETIONS_DIR} below instead, which only changes on kubectl upgrades.
 export ZSH_CACHE_DIR=${XDG_CACHE_HOME:-${HOME}/.cache}/zsh
 [[ -d ${ZSH_CACHE_DIR}/completions ]] || mkdir -p ${ZSH_CACHE_DIR}/completions
-fpath=(${ZSH_CACHE_DIR}/completions ${fpath})
+
+# Prune it if we inherited it. `brew shellenv` exports FPATH, so a shell started
+# from one that did have this directory on fpath would otherwise keep dragging
+# it along, and so would everything that shell spawns.
+fpath=(${fpath:#${ZSH_CACHE_DIR}/completions})
+
+# Hand-managed completions, stable across startups so they never invalidate the
+# compinit dump. _kubectl is regenerated only when the kubectl binary it was
+# built from changes, so it always matches whichever kubectl is first on PATH
+# rather than whichever _kubectl happens to be shipped by a package.
+typeset -g ZSH_COMPLETIONS_DIR=${ZDOTDIR:-${HOME}}/.zsh/completions
+[[ -d ${ZSH_COMPLETIONS_DIR} ]] || mkdir -p ${ZSH_COMPLETIONS_DIR}
+fpath=(${ZSH_COMPLETIONS_DIR} ${fpath})
+# Pick the first kubectl on PATH that is actually executable. The `-*` qualifier
+# resolves symlinks, which skips /usr/local/bin/kubectl -- Docker Desktop's WSL
+# integration leaves that pointing into /mnt/wsl/docker-desktop, which is
+# unmounted whenever Docker Desktop isn't running. $commands[kubectl] happily
+# returns that dangling link, and comparing mtimes against a link that cannot be
+# stat'd made the freshness test below fail on every startup.
+() {
+  emulate -L zsh -o EXTENDED_GLOB
+  # Skip the /mnt/* entries WSL interop appends: they are DrvFs, where a stat
+  # costs milliseconds rather than microseconds, and a Windows kubectl.exe is
+  # not something we would want to generate zsh completion from anyway.
+  local -a kubectl_bins=(${^${path:#/mnt/*}}/kubectl(N-*))
+  local kubectl_bin=${kubectl_bins[1]}
+  [[ -n ${kubectl_bin} ]] || return 0
+
+  # Key the cache on which binary produced it and that binary's mtime, rather
+  # than on mtime ordering. Replacing kubectl with a different install can leave
+  # a newer completion file sitting next to an older binary -- swapping brew's
+  # kubernetes-cli for the pkgs.k8s.io package did exactly that -- and an `-nt`
+  # test accepts the stale cache. Comparing for equality catches downgrades and
+  # sideways moves too. The stamp lives outside fpath so it cannot perturb the
+  # compinit dump fingerprint.
+  local stamp=${ZSH_CACHE_DIR}/kubectl-completion.stamp
+  local -a bin_mtime
+  zmodload -F zsh/stat b:zstat && zstat -A bin_mtime +mtime ${kubectl_bin:A} || return 0
+  local want="${kubectl_bin:A} ${bin_mtime[1]}"
+  [[ -s ${ZSH_COMPLETIONS_DIR}/_kubectl && -r ${stamp} && "$(<${stamp})" == ${want} ]] && return 0
+  if ${kubectl_bin} completion zsh >| ${ZSH_COMPLETIONS_DIR}/_kubectl 2>/dev/null; then
+    print -r -- ${want} >| ${stamp}
+  else
+    command rm -f ${ZSH_COMPLETIONS_DIR}/_kubectl ${stamp}
+  fi
+}
 
 # The oh-my-zsh git plugin calls these, but they are defined in its lib/git.zsh,
 # which we don't load.
@@ -154,26 +233,9 @@ fi
 source ${ZIM_HOME}/init.zsh
 # }}} End configuration added by Zim Framework install
 
-# Load homebrew env to shell, on the machines that have it. Its own installer
-# prints this line with the prefix baked in, but the prefix differs per
-# platform and a missing brew makes every shell start with a "no such file or
-# directory" error, so look for it instead.
-for _brew in /home/linuxbrew/.linuxbrew/bin/brew /opt/homebrew/bin/brew /usr/local/bin/brew; do
-  if [[ -x ${_brew} ]]; then
-    eval "$(${_brew} shellenv)"
-    break
-  fi
-done
-unset _brew
-
 # Open URLs through xdg-open, silencing WSL interop's "tcgetpgrp failed: Not a
 # tty" noise (see ~/.local/bin/xdg-browser).
 export BROWSER="$HOME/.local/bin/xdg-browser"
-
-# Add extra paths to PATH. `path` is the array tied to it; -U keeps it free of
-# duplicates, so re-sourcing this file does not grow PATH each time.
-typeset -gU path PATH
-path=($HOME/bin $HOME/.local/bin /usr/local/bin $path)
 
 # Sensitive exports live in ~/.zsh_secrets (mode 600, never committed).
 if [[ -f ~/.zsh_secrets ]]; then
