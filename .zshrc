@@ -241,12 +241,3 @@ export BROWSER="$HOME/.local/bin/xdg-browser"
 if [[ -f ~/.zsh_secrets ]]; then
   source ~/.zsh_secrets
 fi
-
-# Ubuntu 26.04 ships uutils ls 0.8.0, which drops the name sort entirely when
-# given --group-directories-first (LP #2154042). Zim's utility module sets that
-# flag, so override its alias with GNU ls from the gnu-coreutils package. Drop
-# this once /usr/bin/ls --version reports uutils >= 0.9.0.
-if (( $+commands[gnuls] )); then
-  alias ls='gnuls --group-directories-first --color=auto'
-fi
-
